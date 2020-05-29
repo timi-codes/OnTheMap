@@ -20,11 +20,14 @@ class MapClient {
         
         case getStudentLocations
         case postMyLocation
+        case login
+        case logout
         
         var stringValue: String {
             switch self {
                 case .getStudentLocations: return Endpoints.base + "/StudentLocation\(Endpoints.orderByUpdatedAt)"
                 case .postMyLocation: return Endpoints.base + "/StudentLocation"
+            case .login,.logout: return Endpoints.base + "/session"
             }
         }
         
@@ -57,7 +60,7 @@ class MapClient {
         task.resume()
     }
     
-    class func postMyLocation(body: StudentLocation, completion: @escaping (Result<[StudentLocation], Error>)->Void){
+    class func postMyLocation(body: StudentLocation, completion: @escaping (Result<PostLocationResponse, Error>)->Void){
         var request = URLRequest(url: Endpoints.postMyLocation.url)
         request.httpMethod = "POST"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -71,9 +74,90 @@ class MapClient {
                 return
             }
             
-            print(String(data: data, encoding: .utf8)!)
+            do {
+                let response = try JSONDecoder().decode(PostLocationResponse.self, from: data)
+                DispatchQueue.main.async {
+                    completion(.success(response))
+                }
+            }catch {
+                DispatchQueue.main.async {
+                    completion(.failure(error))
+                }
+            }
         }
         
+        task.resume()
+    }
+    
+    class func login(_ loginData: LoginData, completion: @escaping (Result<Bool, Error>)->Void){
+        var request = URLRequest(url: Endpoints.login.url)
+        request.httpMethod = "POST"
+        request.addValue("application/json", forHTTPHeaderField: "Accept")
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let body = LoginRequest(udacity: loginData)
+        request.httpBody = try! JSONEncoder().encode(body)
+
+        let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
+           guard let data = data else {
+               DispatchQueue.main.async {
+                   completion(.failure(error!))
+               }
+               return
+           }
+            
+            let range = 5..<data.count
+            let newData = data.subdata(in: range)
+            
+            print(String(data: newData, encoding: .utf8)!)
+           
+           do {
+               let response = try JSONDecoder().decode(LoginResponse.self, from: newData)
+            
+            guard response.session?.id != nil else{
+                DispatchQueue.main.async {
+                   completion(.success(false))
+                }
+                return
+            }
+               DispatchQueue.main.async {
+                   completion(.success(true))
+               }
+           }catch {
+               DispatchQueue.main.async {
+                   completion(.failure(error))
+               }
+           }
+        }
+        
+        task.resume()
+    }
+    
+    
+    class func logout( completion: @escaping (Result<Bool, Error>)->Void){
+        var request = URLRequest(url: Endpoints.logout.url)
+        request.httpMethod = "DELETE"
+        var xsrfCookie: HTTPCookie? = nil
+        let sharedCookieStorage = HTTPCookieStorage.shared
+        for cookie in sharedCookieStorage.cookies! {
+          if cookie.name == "XSRF-TOKEN" { xsrfCookie = cookie }
+        }
+        if let xsrfCookie = xsrfCookie {
+          request.setValue(xsrfCookie.value, forHTTPHeaderField: "X-XSRF-TOKEN")
+        }
+
+        let task = URLSession.shared.dataTask(with: request) { data, response, error in
+            guard let _ = data else {
+              DispatchQueue.main.async {
+                  completion(.failure(error!))
+              }
+              return
+            }
+            
+            DispatchQueue.main.async {
+                completion(.success(true))
+            }
+        }
         task.resume()
     }
 }

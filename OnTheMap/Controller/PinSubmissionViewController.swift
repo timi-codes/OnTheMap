@@ -26,13 +26,16 @@ class PinSubmissionViewController: UIViewController, UITextFieldDelegate {
         linkTextField.borderStyle = .none
         linkTextField.attributedPlaceholder = NSAttributedString(string: "Enter Your Location Here", attributes: [NSAttributedString.Key.foregroundColor: UIColor(white: 1, alpha: 0.6)])
         
-        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Cancel", style: .plain, target: self, action: #selector(cancelTapped))
     }
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         showIndicator("Fetching Coordinates")
         getCoordinate(forAddress: address) { (coord) in
+            DispatchQueue.main.async {
+                self.dismiss(animated: true, completion: nil)
+            }
+            
             let pin = MKPointAnnotation()
             pin.coordinate = coord!
             self.addressCoordinates = coord!
@@ -47,20 +50,18 @@ class PinSubmissionViewController: UIViewController, UITextFieldDelegate {
 
     @IBAction func submitPinTapped(_ sender: Any) {
         showIndicator("Posting pin...")
-        let student = StudentLocation(objectId: <#T##String#>, uniqueKey: <#T##String#>, firstName: "Tejumola", lastName: "Timi", mapString: address, mediaURL: linkTextField.text!, latitude: addressCoordinates.latitude, longitude: addressCoordinates.longitude)
-        
+        let student = StudentLocation(objectId: "12", uniqueKey: "12345", firstName: "Tejumola", lastName: "Timi", mapString: address, mediaURL: linkTextField.text ?? "https://www.udacity.com", latitude: Float(addressCoordinates.latitude), longitude: Float(addressCoordinates.longitude))
+                
         MapClient.postMyLocation(body: student) { (result) in
-//            self.performSegue(withIdentifier: <#T##String#>, sender: <#T##Any?#>)
-            DispatchQueue.main.async {
-                self.dismiss(animated: true, completion: nil)
-            }
+            self.dismiss(animated: true, completion: nil)
         }
 
     }
     
-    @objc func cancelTapped(){
+    @IBAction func cancelTapped(_ sender: Any) {
         dismiss(animated: true, completion: nil)
     }
+    
     
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         linkTextField.resignFirstResponder()
@@ -70,6 +71,7 @@ class PinSubmissionViewController: UIViewController, UITextFieldDelegate {
     func getCoordinate(forAddress address: String, completion: @escaping (CLLocationCoordinate2D?) -> Void ){
         let geocoder = CLGeocoder()
         geocoder.geocodeAddressString(address) { (placemarks, error) in
+            self.dismiss(animated: true, completion: nil)
             guard error == nil else{
                 self.alert(title: "Invalid geocode", description: "Cannot find address coordinates", style: .alert, actions: [], viewController: nil)
                 return
@@ -77,5 +79,12 @@ class PinSubmissionViewController: UIViewController, UITextFieldDelegate {
             completion(placemarks?.first?.location?.coordinate)
         }
         
+    }
+    
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        if segue.identifier == "unwindToMapSegue" {
+            let destVC = segue.destination as! MapViewController
+            destVC.myCoordinate = addressCoordinates
+        }
     }
 }

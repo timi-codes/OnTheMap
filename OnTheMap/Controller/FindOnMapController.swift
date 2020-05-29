@@ -30,7 +30,7 @@ class FindOnMapController: UIViewController, UITextFieldDelegate {
             return
         }
         
-        performSegue(withIdentifier: "submitPin", sender: nil)
+        performSegue(withIdentifier: "submitPin", sender: self)
     }
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
