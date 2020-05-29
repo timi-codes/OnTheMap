@@ -13,10 +13,10 @@ class MapClient {
     struct Auth {
         fileprivate static var sessionId = ""
     }
-    
+
     enum Endpoints {
         static let base = "https://onthemap-api.udacity.com/v1"
-        static let orderByUpdatedAt = "?order=-updatedAt"
+        static let orderByUpdatedAt = "?order=-updatedAt&limit=100"
         
         case getStudentLocations
         case postMyLocation
