@@ -41,8 +41,8 @@ class LoginViewController: UIViewController {
                 if isSuccess {
                     self.performSegue(withIdentifier: "Login", sender: self)
                 }
-            case .failure(_):
-                self.alert(title: "Invalid credential", description: "No user with this credentail exist", style: .alert, actions: [], viewController: nil)
+            case .failure(let error):
+                self.alert(title: "Login Failed", description: error.localizedDescription, style: .alert, actions: [], viewController: nil)
             }
         }
     }

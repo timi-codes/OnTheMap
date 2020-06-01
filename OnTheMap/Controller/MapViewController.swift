@@ -57,7 +57,9 @@ class MapViewController: UIViewController, LoadDataProtocol {
     }
     
      @IBAction func unwindToMap(_ sender: UIStoryboardSegue){
-        mapView.setCenter(myCoordinate!, animated: true)
+        if let coordinate = myCoordinate {
+            mapView.setCenter(coordinate, animated: true)
+        }
         loadData()
     }
 }

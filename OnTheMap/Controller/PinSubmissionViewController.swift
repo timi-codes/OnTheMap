@@ -32,18 +32,11 @@ class PinSubmissionViewController: UIViewController, UITextFieldDelegate {
         super.viewDidAppear(animated)
         showIndicator("Fetching Coordinates")
         getCoordinate(forAddress: address) { (coord) in
-            DispatchQueue.main.async {
-                self.dismiss(animated: true, completion: nil)
-            }
-            
             let pin = MKPointAnnotation()
             pin.coordinate = coord!
             self.addressCoordinates = coord!
             self.mapView.addAnnotation(pin)
             self.mapView.setCenter(coord!, animated: true)
-            DispatchQueue.main.async {
-                self.dismiss(animated: true, completion: nil)
-            }
         }
     }
     
@@ -51,9 +44,20 @@ class PinSubmissionViewController: UIViewController, UITextFieldDelegate {
     @IBAction func submitPinTapped(_ sender: Any) {
         showIndicator("Posting pin...")
         let student = StudentLocation(objectId: "12", uniqueKey: "12345", firstName: "Tejumola", lastName: "Timi", mapString: address, mediaURL: linkTextField.text ?? "https://www.udacity.com", latitude: Float(addressCoordinates.latitude), longitude: Float(addressCoordinates.longitude))
-                
+        print(student)
+
         MapClient.postMyLocation(body: student) { (result) in
-            self.dismiss(animated: true, completion: nil)
+            switch result {
+            case .success(_):
+                print("Success")
+                self.performSegue(withIdentifier: "unwindToMapSegue", sender: nil)
+            case .failure(let error):
+                print("Failed")
+                let closeAction = UIAlertAction(title: "Close", style: .default, handler: { action in
+                    self.dismiss(animated: true)
+                })
+                self.alert(title: "Something went wrong", description: error.localizedDescription, style: .alert, actions: [closeAction], viewController: nil)
+            }
         }
 
     }
@@ -71,9 +75,14 @@ class PinSubmissionViewController: UIViewController, UITextFieldDelegate {
     func getCoordinate(forAddress address: String, completion: @escaping (CLLocationCoordinate2D?) -> Void ){
         let geocoder = CLGeocoder()
         geocoder.geocodeAddressString(address) { (placemarks, error) in
-            self.dismiss(animated: true, completion: nil)
+            self.dismiss(animated: true)
             guard error == nil else{
-                self.alert(title: "Invalid geocode", description: "Cannot find address coordinates", style: .alert, actions: [], viewController: nil)
+                
+                let closeAction = UIAlertAction(title: "Close", style: .default, handler: { action in
+                    self.dismiss(animated: true)
+                })
+                
+                self.alert(title: "Invalid geocode", description: "Cannot find address coordinates", style: .alert, actions: [closeAction], viewController: nil)
                 return
             }
             completion(placemarks?.first?.location?.coordinate)
